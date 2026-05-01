@@ -5,17 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ГЛАВКОНТЕНТСНАБ</title>
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-    <script type="module" crossorigin src="/openclaw-vk/assets/index-DwW2dpW5.js"></script>
-    <link rel="stylesheet" crossorigin href="/openclaw-vk/assets/index-A1gCL48O.css">
+    <script type="module" crossorigin src="/openclaw-vk/assets/index-CrNqWtYN.js"></script>
+    <link rel="stylesheet" crossorigin href="/openclaw-vk/assets/index-t5lZgp2r.css">
   </head>
   <body>
     <div id="root"></div>
-    <script>try { vkBridge.send('VKWebAppInit'); } catch(_) {}</script>
     <script>
-      // Косметическая защита от случайных юзеров (профи обходит за 5 секунд через меню браузера).
-      // Не блокирует полностью DevTools — только повышает порог входа.
+      // ─── PROD-ONLY HARDENING ───────────────────────────────────────────────
+      // Запускается до VK Bridge и нашего бандла — глушит всё что можно заглушить.
       (function() {
         if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+
+        // 1. Глушим console — ни наш код, ни VK SDK, ни сторонние не смогут писать в консоль.
+        //    Оставляем error чтобы критические VK ошибки доходили (иначе VK Bridge может зависнуть).
+        var noop = function() {};
+        ['log','warn','info','debug','table','dir','group','groupEnd','trace','time','timeEnd','count','assert'].forEach(function(m) {
+          try { console[m] = noop; } catch(_) {}
+        });
+
+        // 2. Защита горячих клавиш DevTools (отсеивает casual; обходится через меню браузера)
         document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
         document.addEventListener('keydown', function(e) {
           var k = e.key;
@@ -26,8 +34,33 @@
             return false;
           }
         });
+
+        // 3. Детект DevTools — если открыли, шлём алерт на бэк (для аналитики).
+        //    Метод через timing debugger statement — срабатывает только если DevTools открыт.
+        var alerted = false;
+        function checkDevTools() {
+          var t0 = performance.now();
+          // eslint-disable-next-line no-debugger
+          debugger;
+          var dt = performance.now() - t0;
+          if (dt > 100 && !alerted) {
+            alerted = true;
+            try {
+              var lp = sessionStorage.getItem('vk_launch_params') || '';
+              fetch('/api/security/devtools-opened', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-VK-Launch-Params': lp },
+                body: JSON.stringify({ ua: navigator.userAgent, ts: Date.now() }),
+                keepalive: true,
+              }).catch(function(){});
+            } catch(_) {}
+          }
+        }
+        // Проверяем раз в 3 секунды (debugger statement вызывает паузу только при открытом DevTools)
+        setInterval(checkDevTools, 3000);
       })();
     </script>
+    <script>try { vkBridge.send('VKWebAppInit'); } catch(_) {}</script>
   </body>
 </html>
 
