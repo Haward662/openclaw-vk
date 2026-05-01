@@ -5,12 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ГЛАВКОНТЕНТСНАБ</title>
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
-    <script type="module" crossorigin src="/openclaw-vk/assets/index-B90mdExj.js"></script>
+    <script type="module" crossorigin src="/openclaw-vk/assets/index-DwW2dpW5.js"></script>
     <link rel="stylesheet" crossorigin href="/openclaw-vk/assets/index-A1gCL48O.css">
   </head>
   <body>
     <div id="root"></div>
     <script>try { vkBridge.send('VKWebAppInit'); } catch(_) {}</script>
+    <script>
+      // Косметическая защита от случайных юзеров (профи обходит за 5 секунд через меню браузера).
+      // Не блокирует полностью DevTools — только повышает порог входа.
+      (function() {
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+        document.addEventListener('keydown', function(e) {
+          var k = e.key;
+          if (k === 'F12' ||
+              (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C' || k === 'i' || k === 'j' || k === 'c')) ||
+              (e.ctrlKey && (k === 'u' || k === 'U' || k === 's' || k === 'S'))) {
+            e.preventDefault();
+            return false;
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
 
